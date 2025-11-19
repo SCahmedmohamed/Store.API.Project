@@ -1,4 +1,5 @@
-﻿using Shared.About_Products;
+﻿using Shared;
+using Shared.About_Products;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Services.Abstractions.About_Products
 {
     public interface IProductService
     {
-        Task<IEnumerable<ProductResponse>> GetAllProductsAsync();
+        Task<PaginatedResponse<ProductResponse>> GetAllProductsAsync(ProductQueryParams Params);
         Task<ProductResponse> GetProductByIdAsync(int Id);
         Task<IEnumerable<BrandTypeResponse>> GetAllBrandsAsync();
         Task<IEnumerable<BrandTypeResponse>> GetAllTypesAsync();

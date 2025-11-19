@@ -1,11 +1,16 @@
 
 using Doman.Contracts;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using Peresistences;
 using Peresistences.Data.Contexts;
 using Services;
 using Services.Abstractions;
 using Services.Mapping.About_Products;
+using Shared.ErrorModels;
+using Web.Extenstions;
+using Web.MiddelWares;
 
 namespace Web
 {
@@ -15,44 +20,47 @@ namespace Web
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            builder.Services.AddDbContext<StoreDbContext>(options =>
+            builder.Services.AddSwaggerGen(options =>
             {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-            });
-            builder.Services.AddScoped<IDbInitializer ,DbInitialzer>();
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-            builder.Services.AddScoped<IServiceManager, ServiceManager>();
-            builder.Services.AddAutoMapper(M=>M.AddProfile(new ProductProfile()));
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter JWT token like this: Bearer {your token}"
+                });
 
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+            });
+
+            builder.Services.AddAllService(builder.Configuration);
 
             var app = builder.Build();
 
-            using var Scope = app.Services.CreateScope();
-            var DbInitializer = Scope.ServiceProvider.GetRequiredService<IDbInitializer>();
-            await DbInitializer.InitializeAsync();
-
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-
-            app.MapControllers();
+            await app.AddAllMiddelWaresAsync();
 
             app.Run();
         }
     }
 }
+/*
+ * 
+    Customer => string id , list of BasketItems
+    BasketItem => ProductId, ProductName, PictureURL , Quantity, Price
+
+ */
